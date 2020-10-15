@@ -25,158 +25,7 @@ class Flow {
     function __construct() {
         //global $flow_medioPago;
         $this->secretKey = config('flow.secret_key');
-        $this->order["OrdenNumero"] = "";
-        $this->order["Concepto"] = "";
-        $this->order["Monto"] = "";
-        $this->order["MedioPago"] = config('flow.medioPago');
-        $this->order["FlowNumero"] = "";
-        $this->order["Pagador"] = "";
-        $this->order["Status"] = "";
-        $this->order["Error"] = "";
-        $this->order["Optionals"] = "";
-    }
-
-    // Metodos SET
-
-    /**
-     * Set el número de Orden del comercio
-     *
-     * @param string $orderNumer El número de la Orden del Comercio
-     *
-     * @return bool (true/false)
-     */
-    public function setOrderNumber($orderNumber) {
-        if(!empty($orderNumber)) {
-            $this->order["OrdenNumero"] = $orderNumber;
-        }
-        $this->flow_log("Asigna Orden N°: ". $this->order["OrdenNumero"], '');
-        return !empty($orderNumber);
-    }
-
-    /**
-     * Set el concepto de pago
-     *
-     * @param string $concepto El concepto del pago
-     *
-     * @return bool (true/false)
-     */
-    public function setConcept($concepto) {
-        if(!empty($concepto)) {
-            $this->order["Concepto"] = $concepto;
-        }
-        return !empty($concepto);
-    }
-
-    /**
-     * Set el monto del pago
-     *
-     * @param string $monto El monto del pago
-     *
-     * @return bool (true/false)
-     */
-    public function setAmount($monto) {
-        if(!empty($monto)) {
-            $this->order["Monto"] = $monto;
-        }
-        return !empty($monto);
-    }
-
-    /**
-     * Set Medio de Pago, por default el Medio de Pago será el configurada en config.php
-     *
-     * @param string $medio El Medio de Pago de esta orden
-     *
-     * @return bool (true/false)
-     */
-    public function setMedio($medio) {
-        if(!empty($medio)) {
-            $this->order["MedioPago"] = $medio;
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
-
-    /**
-     * Set pagador, el email del pagador de esta orden
-     *
-     * @param string $email El email del pagador de la orden
-     *
-     * @return bool (true/false)
-     */
-    public function setPagador($email) {
-        if(!empty($email)) {
-            $this->order["Pagador"] = $email;
-            return TRUE;
-        } else {
-            return FALSE;
-        }
-    }
-
-
-    // Metodos GET
-
-    /**
-     * Get el número de Orden del Comercio
-     *
-     * @return string el número de Orden del comercio
-     */
-    public function getOrderNumber() {
-        return $this->order["OrdenNumero"];
-    }
-
-    /**
-     * Get el concepto de Orden del Comercio
-     *
-     * @return string el concepto de Orden del comercio
-     */
-    public function getConcept() {
-        return $this->order["Concepto"];
-    }
-
-    /**
-     * Get el monto de Orden del Comercio
-     *
-     * @return string el monto de la Orden del comercio
-     */
-    public function getAmount() {
-        return $this->order["Monto"];
-    }
-
-    /**
-     * Get el Medio de Pago para de Orden del Comercio
-     *
-     * @return string el Medio de pago de esta Orden del comercio
-     */
-    public function getMedio() {
-        return $this->order["MedioPago"];
-    }
-
-    /**
-     * Get el estado de la Orden del Comercio
-     *
-     * @return string el estado de la Orden del comercio
-     */
-    public function getStatus() {
-        return $this->order["Status"];
-    }
-
-    /**
-     * Get el número de Orden de Flow
-     *
-     * @return string el número de la Orden de Flow
-     */
-    public function getFlowNumber() {
-        return $this->order["FlowNumero"];
-    }
-
-    /**
-     * Get el email del pagador de la Orden
-     *
-     * @return string el email del pagador de la Orden de Flow
-     */
-    public function getPayer() {
-        return $this->order["Pagador"];
+        $this->api_key = config('flow.api_key');
     }
 
 
@@ -191,7 +40,7 @@ class Flow {
      *
      * @return string flow_pack Paquete de datos firmados listos para ser enviados a Flow
      */
-    public function newOrder($orden_compra, $monto,  $concepto, $email_pagador, $optionals = [], $medioPago = "Non") {
+    public function createNewOrder($orden_compra, $monto,  $concepto, $email_pagador, $optionals = [], $medioPago = "Non") {
         $this->flow_log("Iniciando nueva Orden", "new_order");
         if(!isset($orden_compra,$monto,$concepto)) {
             $this->flow_log("Error: No se pasaron todos los parámetros obligatorios","new_order");
@@ -203,14 +52,25 @@ class Flow {
             $this->flow_log("Error: El parámetro monto de la orden debe ser numérico","new_order");
             throw new Exception("El monto de la orden debe ser numérico");
         }
-        $this->order["OrdenNumero"] = $orden_compra;
-        $this->order["Concepto"] = $concepto;
-        $this->order["Monto"] = $monto;
-        $this->order["MedioPago"] = $medioPago;
-        $this->order["Pagador"] = $email_pagador;
-        $this->order["Optionals"] = $optionals;
 
-        return $this->setNewOrderParamsAndSign();
+        $url_confirmacion = $this->generarUrl(config('flow.url_confirmacion'));
+        $url_retorno = $this->generarUrl(config('flow.url_retorno'));
+
+        $params = array(
+            "apiKey" => $this->api_key,
+            "commerceOrder" => $orden_compra,
+            "subject" => $concepto,
+            "currency" => "CLP",
+            "amount" => $monto,
+            "email" =>  $email_pagador,
+            "paymentMethod" => $medioPago,
+            "urlConfirmation" => $url_confirmacion,
+            "urlReturn" => $url_retorno,
+            "optional" => json_encode($optionals)
+        );
+
+        $params["s"] = $this->signParams($params);
+        return $params;
     }
 
     /**
@@ -226,10 +86,30 @@ class Flow {
         return $data;
     }
 
-    public function getOrderStatus($flowOrderID){
+    public function getOrderStatusByOrderID($flowOrderID){
         $url = config('flow.base_url') . '/payment/getStatusByFlowOrder';
-        $signedParams = $this->setGetOrderStatusParamsAndSign($flowOrderID);
-        $response = $this->httpGet($url, $signedParams);
+
+        $params = array(
+            "apiKey" => $this->api_key,
+            "flowOrder" => $flowOrderID
+        );
+
+        $params["s"] = $this->signParams($params);
+        $response = $this->httpGet($url, $params);        
+        $data = json_decode($response["output"], true);
+        return $data;
+    }
+
+    public function getOrderStatusByToken($flowOrderToken){
+        $url = config('flow.base_url') . '/payment/getStatus';
+        
+        $params = array(
+            "apiKey" => $this->api_key,
+            "token" => $flowOrderToken
+        );
+
+        $params["s"] = $this->signParams($params);
+        $response = $this->httpGet($url, $params);
         $data = json_decode($response["output"], true);
         return $data;
     }
@@ -246,45 +126,6 @@ class Flow {
         $file = fopen(config('flow.logPath') . "/flowLog_" . date("Y-m-d") .".txt" , "a+");
         fwrite($file, "[".date("Y-m-d H:i:s.u")." ".getenv('REMOTE_ADDR')." ".getenv('HTTP_X_FORWARDED_FOR')." - $type ] ".$message . PHP_EOL);
         fclose($file);
-    }
-
-    private function setNewOrderParamsAndSign() {
-        $api_key = config('flow.api_key');
-        $orden_compra = $this->order["OrdenNumero"];
-        $monto = $this->order["Monto"];
-        $medioPago = $this->order["MedioPago"];
-        $email = $this->order["Pagador"];
-        $concepto = $this->order["Concepto"];
-        $optionals = json_encode($this->order["Optionals"]);
-        $url_confirmacion = $this->generarUrl(config('flow.url_confirmacion'));
-        $url_retorno = $this->generarUrl(config('flow.url_retorno'));
-
-        $params = array(
-            "apiKey" => $api_key,
-            "commerceOrder" => $orden_compra,
-            "subject" => $concepto,
-            "currency" => "CLP",
-            "amount" => $monto,
-            "email" => $email,
-            "paymentMethod" => $medioPago,
-            "urlConfirmation" => $url_confirmacion,
-            "urlReturn" => $url_retorno,
-            "optional" => $optionals
-        );
-
-        $params["s"] = $this->signParams($params);
-        return $params;
-    }
-
-    private function setGetOrderStatusParamsAndSign($flowOrderID) {
-        $api_key = config('flow.api_key');
-        $params = array(
-            "apiKey" => $api_key,
-            "flowOrder" => $flowOrderID
-        );
-
-        $params["s"] = $this->signParams($params);
-        return $params;
     }
 
     /**
