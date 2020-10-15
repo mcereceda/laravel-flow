@@ -365,7 +365,7 @@ class Flow {
         if(!function_exists("hash_hmac")) {
             throw new Exception("function hash_hmac not exist", 1);
         }
-        return hash_hmac('sha256', $toSign , $secretKey);
+        return hash_hmac('sha256', $toSign , $this->secretKey);
     }
 
     private function flow_sign_validate($signature, $data) {
