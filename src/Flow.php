@@ -387,7 +387,7 @@ class Flow {
         $monto = $this->order["Monto"];
         $medioPago = $this->order["MedioPago"];
         $email = $this->order["Pagador"];
-        $concepto = $this->order["Concepto"]
+        $concepto = $this->order["Concepto"];
 
         $optional = array(
             "rut" => "9999999-9",
