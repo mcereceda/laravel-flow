@@ -226,6 +226,14 @@ class Flow {
         return $data;
     }
 
+    public function getOrderStatus($flowOrderID){
+        $url = config('flow.base_url') . '/payment/getStatusByFlowOrder';
+        $signedParams = $this->setGetOrderStatusParamsAndSign($flowOrderID);
+        $response = $this->httpGet($url, $signedParams);
+        $data = json_decode($response["output"], true);
+        return $data;
+    }
+
     /**
      * Registra en el Log de Flow
      *
@@ -238,25 +246,6 @@ class Flow {
         $file = fopen(config('flow.logPath') . "/flowLog_" . date("Y-m-d") .".txt" , "a+");
         fwrite($file, "[".date("Y-m-d H:i:s.u")." ".getenv('REMOTE_ADDR')." ".getenv('HTTP_X_FORWARDED_FOR')." - $type ] ".$message . PHP_EOL);
         fclose($file);
-    }
-
-    /**
-     * Funcion que firma los parametros
-     * @param string $params Parametros a firmar
-     * @return string de firma
-     * @throws Exception
-     */
-    private function signParams($params) {
-        $keys = array_keys($params);
-        sort($keys);
-        $toSign = "";
-        foreach ($keys as $key) {
-            $toSign .= $key . $params[$key];
-        }
-        if(!function_exists("hash_hmac")) {
-            throw new Exception("function hash_hmac not exist", 1);
-        }
-        return hash_hmac('sha256', $toSign , $this->secretKey);
     }
 
     private function setNewOrderParamsAndSign() {
@@ -365,5 +354,24 @@ class Flow {
         } else {
             return $url;
         }
+    }
+
+    /**
+     * Funcion que firma los parametros
+     * @param string $params Parametros a firmar
+     * @return string de firma
+     * @throws Exception
+     */
+    private function signParams($params) {
+        $keys = array_keys($params);
+        sort($keys);
+        $toSign = "";
+        foreach ($keys as $key) {
+            $toSign .= $key . $params[$key];
+        }
+        if(!function_exists("hash_hmac")) {
+            throw new Exception("function hash_hmac not exist", 1);
+        }
+        return hash_hmac('sha256', $toSign , $this->secretKey);
     }
 }
