@@ -24,6 +24,7 @@ class Flow {
     //Constructor de la clase
     function __construct() {
         //global $flow_medioPago;
+        $this->secretKey = config('flow.secret_key')
         $this->order["OrdenNumero"] = "";
         $this->order["Concepto"] = "";
         $this->order["Monto"] = "";
@@ -354,13 +355,17 @@ class Flow {
         }
     }
 
-    private function flow_sign($data) {
-        $priv_key_id = $this->flow_get_private_key_id();
-        if(! openssl_sign($data, $signature, $priv_key_id)) {
-            $this->flow_log("No se pudo firmar", "flow_sign");
-            throw new Exception('It can not sign');
-        };
-        return base64_encode($signature);
+    private function flow_sign($params) {
+        $keys = array_keys($params);
+        sort($keys);
+        $toSign = "";
+        foreach ($keys as $key) {
+            $toSign .= $key . $params[$key];
+        }
+        if(!function_exists("hash_hmac")) {
+            throw new Exception("function hash_hmac not exist", 1);
+        }
+        return hash_hmac('sha256', $toSign , $secretKey);
     }
 
     private function flow_sign_validate($signature, $data) {
@@ -375,30 +380,41 @@ class Flow {
 
     private function flow_pack() {
         //global $flow_comercio, $flow_url_exito, $flow_url_fracaso, $flow_url_confirmacion, $flow_tipo_integracion, $flow_url_retorno;
-        $api_key = urlencode(config('flow.api_key'));
-        $tipo_integracion = urlencode(config('flow.tipo_integracion'));
-        $comercio = urlencode(config('flow.comercio'));
-        $orden_compra = urlencode($this->order["OrdenNumero"]);
-        $monto = urlencode($this->order["Monto"]);
-        $medioPago = urlencode($this->order["MedioPago"]);
-        $email = urlencode($this->order["Pagador"]);
+        $api_key = config('flow.api_key');
+        $tipo_integracion = config('flow.tipo_integracion');
+        $comercio = config('flow.comercio');
+        $orden_compra = $this->order["OrdenNumero"];
+        $monto = $this->order["Monto"];
+        $medioPago = $this->order["MedioPago"];
+        $email = $this->order["Pagador"];
+        $concepto = $this->order["Concepto"]
 
-        $hConcepto = htmlentities($this->order["Concepto"]);
-        if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'UTF-8');
-        if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'ISO-8859-1');
-        if (!$hConcepto) $hConcepto = "Orden de Compra $orden_compra";
+        $optional = array(
+            "rut" => "9999999-9",
+            "otroDato" => "otroDato"
+        );
+        $optional = json_encode($optional);
 
-        $concepto = urlencode($hConcepto);
-
-        $url_exito = urlencode($this->generarUrl(config('flow.url_exito')));
-        $url_fracaso = urlencode($this->generarUrl(config('flow.url_fracaso')));
-        $url_confirmacion = urlencode($this->generarUrl(config('flow.url_confirmacion')));
-        $url_retorno = urlencode($this->generarUrl(config('flow.url_retorno')));
+        $url_exito = $this->generarUrl(config('flow.url_exito'));
+        $url_fracaso = $this->generarUrl(config('flow.url_fracaso'));
+        $url_confirmacion = $this->generarUrl(config('flow.url_confirmacion'));
+        $url_retorno = $this->generarUrl(config('flow.url_retorno'));
 
         // $p = "c=$comercio&oc=$orden_compra&mp=$medioPago&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion&ti=$tipo_integracion&e=$email&v=kit_1_4&ur=$url_retorno";
-        $p = "apiKey=$api_key&commerceOrder=$orden_compra&paymentMethod=$medioPago&amount=$monto&subject=$concepto&urlConfirmation=$url_confirmacion&email=$email&urlReturn=$url_retorno&optional=&currency=CLP";
+        $params = array(
+            "apiKey" => $api_key,
+            "commerceOrder" => $orden_compra,
+            "subject" => $concepto,
+            "currency" => "CLP",
+            "amount" => $monto,
+            "email" => $email,
+            "paymentMethod" => $medioPago,
+            "urlConfirmation" => $url_confirmacion,
+            "urlReturn" => $url_retorno,
+            "optional" => $optional
+        );
 
-        $signature = $this->flow_sign($p);
+        $signature = $this->flow_sign($params);
         $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");
         return $p."&s=$signature";
     }
