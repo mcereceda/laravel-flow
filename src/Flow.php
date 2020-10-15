@@ -222,9 +222,8 @@ class Flow {
     public function createFlowOrder($signedParams) {
         $url = config('flow.url_pago');
         $response = $this->httpPost($url, $signedParams);
-        $data = json_decode($response["output"], true);        
-        $flowURL = $data["url"] . "?token=" . $data["token"];
-        return $flowURL;
+        $data = json_decode($response["output"], true);
+        return $data;
     }
 
     /**
@@ -247,7 +246,7 @@ class Flow {
      * @return string de firma
      * @throws Exception
      */
-    private function flow_sign($params) {
+    private function signParams($params) {
         $keys = array_keys($params);
         sort($keys);
         $toSign = "";
@@ -260,7 +259,7 @@ class Flow {
         return hash_hmac('sha256', $toSign , $this->secretKey);
     }
 
-    private function setParamsAndSign() {
+    private function setNewOrderParamsAndSign() {
         $api_key = config('flow.api_key');
         $orden_compra = $this->order["OrdenNumero"];
         $monto = $this->order["Monto"];
@@ -284,8 +283,18 @@ class Flow {
             "optional" => $optionals
         );
 
-        $params["s"] = $this->flow_sign($params);
-        $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");
+        $params["s"] = $this->signParams($params);
+        return $params;
+    }
+
+    private function setGetOrderStatusParamsAndSign($flowOrderID) {
+        $api_key = config('flow.api_key');
+        $params = array(
+            "apiKey" => $api_key,
+            "flowOrder" => $flowOrderID
+        );
+
+        $params["s"] = $this->signParams($params);
         return $params;
     }
 
