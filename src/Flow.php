@@ -24,7 +24,7 @@ class Flow {
     //Constructor de la clase
     function __construct() {
         //global $flow_medioPago;
-        $this->secretKey = config('flow.secret_key')
+        $this->secretKey = config('flow.secret_key');
         $this->order["OrdenNumero"] = "";
         $this->order["Concepto"] = "";
         $this->order["Monto"] = "";
