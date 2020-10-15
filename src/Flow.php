@@ -396,7 +396,7 @@ class Flow {
         $url_retorno = urlencode($this->generarUrl(config('flow.url_retorno')));
 
         // $p = "c=$comercio&oc=$orden_compra&mp=$medioPago&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion&ti=$tipo_integracion&e=$email&v=kit_1_4&ur=$url_retorno";
-        $p = "apiKey=$api_key&commerceOrder=$orden_compra&paymentMethod=$medioPago&amount=$monto&subject=$concepto&urlConfirmation=$url_confirmacion&email=$email&urlReturn=$url_retorno&optional=''&currency='CLP'";
+        $p = "apiKey=$api_key&commerceOrder=$orden_compra&paymentMethod=$medioPago&amount=$monto&subject=$concepto&urlConfirmation=$url_confirmacion&email=$email&urlReturn=$url_retorno&optional=&currency=CLP";
 
         $signature = $this->flow_sign($p);
         $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");
