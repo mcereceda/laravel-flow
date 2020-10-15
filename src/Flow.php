@@ -414,9 +414,9 @@ class Flow {
             "optional" => $optional
         );
 
-        $signature = $this->flow_sign($params);
+        $params["s"] = $this->flow_sign($params);
         $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");
-        return $p."&s=$signature";
+        return $params;
     }
 
     /**
