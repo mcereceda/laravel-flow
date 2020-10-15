@@ -210,7 +210,7 @@ class Flow {
         $this->order["Pagador"] = $email_pagador;
         $this->order["Optionals"] = $optionals;
 
-        return $this->setParamsAndSign();
+        return $this->setNewOrderParamsAndSign();
     }
 
     /**
