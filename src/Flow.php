@@ -220,7 +220,7 @@ class Flow {
      *
      */
     public function createFlowOrder($signedParams) {
-        $url = config('flow.base_url') + '/payment/create';
+        $url = config('flow.base_url') . '/payment/create';
         $response = $this->httpPost($url, $signedParams);
         $data = json_decode($response["output"], true);
         return $data;
